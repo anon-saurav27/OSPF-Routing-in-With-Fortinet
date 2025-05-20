@@ -54,78 +54,168 @@ The process of sharing routing information between different routing protocols (
 ### 🔸 Fortinet Firewall
 
 ```bash
-# Enable OSPF
-config router ospf
-    set router-id 1.1.1.1
-end
+ # 📟 Router R1 – OSPF Area 2 (Connected to Fortinet via Area 1)
+conf t
+hostname R1
 
-# Configure OSPF Areas
-config router ospf
-    config area
-        edit 0.0.0.0
-        next
-        edit 0.0.0.1
-        next
-        edit 0.0.0.3
-        next
-        edit 0.0.0.4
-        next
-    end
-end
+interface e0/0
+ ip address 192.168.5.1 255.255.255.0
+ no shutdown
 
-# OSPF Interface assignments
-config router ospf
-    config ospf-interface
-        edit "port1"
-            set area 0.0.0.1
-        next
-        edit "port2"
-            set area 0.0.0.0
-        next
-        edit "port3"
-            set area 0.0.0.3
-        next
-        edit "port4"
-            set area 0.0.0.4
-        next
-    end
-end
-
- Redistribution Example (RIP & EIGRP to OSPF)
-
-# Redistribute RIP
-config router ospf
-    config redistribute "rip"
-        set status enable
-    end
-end
-
-# Redistribute EIGRP
-config router ospf
-    config redistribute "eigrp"
-        set status enable
-    end
+router ospf 1
+ router-id 1.1.1.1
+ network 192.168.5.0 0.0.0.255 area 1
+ network 172.10.1.0 0.0.0.255 area 2
+ network 172.10.2.0 0.0.0.255 area 2
+ network 172.10.3.0 0.0.0.255 area 2
+ network 172.10.4.0 0.0.0.255 area 2
+ network 172.10.5.0 0.0.0.255 area 2
 end
 
 
-🧪 Testing & Validation
-✅ Ping tests between R1, R2, R3, and R4 LANs
-✅ Routing table verification on Fortinet (get router info routing-table all)
-✅ OSPF neighbor relationships (get router ospf neighbor)
-✅ Traceroute to verify route paths
-✅ RIP and EIGRP debug logs
+# 📟 Router R2 – EIGRP AS 20 (Connected to Fortinet via Area 0)
+conf t
+hostname R2
+
+interface e0/0
+ ip address 192.168.2.1 255.255.255.0
+ no shutdown
+
+router eigrp 20
+ network 172.20.1.0 0.0.0.255
+ network 172.20.2.0 0.0.0.255
+ network 172.20.3.0 0.0.0.255
+ network 172.20.4.0 0.0.0.255
+ network 172.20.5.0 0.0.0.255
+ network 192.168.2.0 0.0.0.255
+ no auto-summary
+end
 
 
-🛠 Tools Used
-GNS3 / EVE-NG for network emulation
+# 📟 Router R3 – OSPF Area 3
 
-FortiGate VM
+conf t
+hostname R3
 
-Cisco IOS routers
+interface e0/0
+ ip address 192.168.3.1 255.255.255.0
+ no shutdown
 
-Wireshark for packet capture and analysis
+router ospf 1
+ router-id 3.3.3.3
+ network 192.168.3.0 0.0.0.255 area 3
+ network 172.30.1.0 0.0.0.255 area 3
+ network 172.30.2.0 0.0.0.255 area 3
+ network 172.30.3.0 0.0.0.255 area 3
+ network 172.30.4.0 0.0.0.255 area 3
+ network 172.30.5.0 0.0.0.255 area 3
+end
 
-Terminal or CLI for configuration
+
+
+# 📟 Router R4 – RIP v2 (Connected to Fortinet via Area 4)
+conf t
+hostname R4
+
+interface e0/0
+ ip address 192.168.4.1 255.255.255.0
+ no shutdown
+
+router rip
+ version 2
+ network 192.168.4.0
+ network 172.40.0.0
+ no auto-summary
+end
+
+## 🛡 Fortinet Firewall – OSPF Core + Redistribution
+# 1️⃣ Configure OSPF & Router ID
+
+config router ospf
+ set router-id 10.10.10.1
+end
+
+# 2️⃣ Define OSPF Areas
+config router ospf
+ config area
+  edit 0.0.0.0
+  next
+  edit 0.0.0.1
+  next
+  edit 0.0.0.3
+  next
+  edit 0.0.0.4
+  next
+ end
+end
+
+# 3️⃣ Assign Interfaces to Areas
+config router ospf
+ config ospf-interface
+  edit "port1"
+   set interface "port1"
+   set area 0.0.0.1
+  next
+  edit "port2"
+   set interface "port2"
+   set area 0.0.0.0
+  next
+  edit "port3"
+   set interface "port3"
+   set area 0.0.0.3
+  next
+  edit "port4"
+   set interface "port4"
+   set area 0.0.0.4
+  next
+ end
+end
+
+# 4️⃣ Enable Redistribution
+# RIP → OSPF
+config router ospf
+ config redistribute "rip"
+  set status enable
+  set metric 10
+ end
+end
+
+# EIGRP → OSPF
+config router ospf
+ config redistribute "eigrp"
+  set status enable
+  set metric 10
+ end
+end
+
+# 5️⃣ Optional: Static Default Route (for management or internet)
+config router static
+ edit 1
+  set dst 0.0.0.0/0
+  set gateway 192.168.1.1
+  set device "port5"
+ next
+end
+
+## ✅ Verification Commands
+# Cisco Routers
+show ip route
+show ip ospf neighbor
+show ip protocols
+show ip rip database
+show ip eigrp neighbors
+
+# Fortinet Firewall
+get router info ospf status
+get router info ospf neighbor
+get router info routing-table all
+
+```
+
+
+
+
+
 
 
 
